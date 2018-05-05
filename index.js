@@ -2,11 +2,19 @@ const http = require('http');
 const express = require('express');
 const ws = require('ws');
 
-const playerMatrixSize = 3 + 4;
+const numPlayerMatrixElements = (3+4)*(1+2);
 class Player {
   constructor(id) {
     this.id = id;
-    this.matrix = new Float32Array(new ArrayBuffer(playerMatrixSize * Float32Array.BYTES_PER_ELEMENT), 0, playerMatrixSize);
+
+    const matrix = new ArrayBuffer(numPlayerMatrixElements * Float32Array.BYTES_PER_ELEMENT);
+    matrix.setUint8Array = (() => {
+      const uint8Array = new Uint8Array(matrix);
+      return newUint8Array => {
+        uint8Array.set(newUint8Array);
+      };
+    })();
+    this.matrix = matrix;
   }
 }
 const playerList = {};
@@ -68,12 +76,7 @@ wss.on('connection', ws => {
       if (localId) {
         const player = playerList[localId];
 
-        const arrayBuffer = new ArrayBuffer(m.length);
-        new Uint8Array(arrayBuffer).set(m);
-        const position = new Float32Array(arrayBuffer, 0, 3);
-        player.matrix.set(position, 0);
-        const quaternion = new Float32Array(arrayBuffer, 3 * Float32Array.BYTES_PER_ELEMENT, 4);
-        player.matrix.set(quaternion, 3);
+        player.matrix.setUint8Array(m);
 
         _broadcastMessages([
           JSON.stringify({type: 'setContext', id: player.id}),
