@@ -17,8 +17,8 @@ const _getWorldSnapshot = () => {
     const player = playerList[id];
     if (player) {
       const {id} = player;
-      result.push({type: 'playerEnter', id});
-      result.push({type: 'setContext', id});
+      result.push(JSON.stringify({type: 'playerEnter', id}));
+      result.push(JSON.stringify({type: 'setContext', id}));
       result.push(player.matrix);
     }
   }
@@ -59,7 +59,7 @@ wss.on('connection', ws => {
       playerList[id] = new Player(id);
       localId = id;
 
-      _broadcastMessage({type: 'playerEnter', id});
+      _broadcastMessage(JSON.stringify({type: 'playerEnter', id}));
 
       connections.push(ws);
 
@@ -76,7 +76,7 @@ wss.on('connection', ws => {
         player.matrix.set(quaternion, 3);
 
         _broadcastMessages([
-          player.id,
+          JSON.stringify({type: 'setContext', id: player.id}),
           player.matrix,
         ]);
       } else {
@@ -89,7 +89,7 @@ wss.on('connection', ws => {
       const id = localId;
       playerList[id] = null;
 
-      _broadcastMessage({type: 'playerLeave', id});
+      _broadcastMessage(JSON.stringify({type: 'playerLeave', id}));
 
       connections.splice(connections.indexOf(ws), 1);
 
