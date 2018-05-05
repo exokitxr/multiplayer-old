@@ -45,7 +45,7 @@ wss.on('connection', ws => {
     for (let i = 0; i < connections.length; i++) {
       const c = connections[i];
       if (c !== ws) {
-        for (let j = 0; j < messages.length; j++) {
+        for (let j = 0; j < ms.length; j++) {
           c.send(ms[j]);
         }
       }
