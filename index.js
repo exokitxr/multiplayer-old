@@ -36,7 +36,7 @@ wss.on('connection', ws => {
   const _broadcastMessage = m => {
     for (let i = 0; i < connections.length; i++) {
       const c = connections[i];
-      if (c !== ws) {
+      if (c !== ws && c.readyState === ws.OPEN) {
         c.send(m);
       }
     }
@@ -44,7 +44,7 @@ wss.on('connection', ws => {
   const _broadcastMessages = ms => {
     for (let i = 0; i < connections.length; i++) {
       const c = connections[i];
-      if (c !== ws) {
+      if (c !== ws && c.readyState === ws.OPEN) {
         for (let j = 0; j < ms.length; j++) {
           c.send(ms[j]);
         }
