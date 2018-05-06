@@ -41,6 +41,10 @@ const _getWorldSnapshot = () => {
 const connections = [];
 
 const app = express();
+app.get('*', (req, res, next) => {
+  console.log('got request', req.method, req.url);
+  res.send('Hello, webmr-server!\n');
+});
 const server = http.createServer(app);
 const wss = new ws.Server({server});
 wss.on('connection', ws => {
