@@ -2,6 +2,8 @@ const http = require('http');
 const express = require('express');
 const ws = require('ws');
 
+const port = parseInt(process.env['PORT'], 10) || 9000;
+
 const numPlayerMatrixElements =
   (3+4) + // hmd
   (1 + (3+4)) * 2 + // gamepads
@@ -108,4 +110,4 @@ wss.on('connection', ws => {
     ws.send(worldSnapshot[i]);
   }
 });
-server.listen(9000);
+server.listen(port);
