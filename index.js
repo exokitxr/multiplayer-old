@@ -2,7 +2,10 @@ const http = require('http');
 const express = require('express');
 const ws = require('ws');
 
-const numPlayerMatrixElements = (3+4)*(1+2);
+const numPlayerMatrixElements =
+  (3+4) + // hmd
+  (1 + (3+4)) * 2 + // gamepads
+  (1 + (5 * (3+3))) * 2; // hands
 class Player {
   constructor(id) {
     this.id = id;
