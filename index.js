@@ -22,12 +22,12 @@ class Player {
     this.matrix = matrix;
   }
 }
-const playerList = {};
+const players = {};
 
 const _getWorldSnapshot = () => {
   const result = [];
-  for (const id in playerList) {
-    const player = playerList[id];
+  for (const id in players) {
+    const player = players[id];
     if (player) {
       const {id} = player;
       result.push(JSON.stringify({type: 'playerEnter', id}));
@@ -76,7 +76,7 @@ wss.on('connection', ws => {
     if (typeof m === 'string') {
       const j = JSON.parse(m);
       const {id} = j;
-      playerList[id] = new Player(id);
+      players[id] = new Player(id);
       localId = id;
 
       _broadcastMessage(JSON.stringify({type: 'playerEnter', id}));
@@ -86,7 +86,7 @@ wss.on('connection', ws => {
       console.log('player join', {id});
     } else {
       if (localId) {
-        const player = playerList[localId];
+        const player = players[localId];
 
         player.matrix.setUint8Array(m);
 
@@ -102,7 +102,7 @@ wss.on('connection', ws => {
   ws.on('close', () => {
     if (localId) {
       const id = localId;
-      playerList[id] = null;
+      players[id] = null;
 
       _broadcastMessage(JSON.stringify({type: 'playerLeave', id}));
 
