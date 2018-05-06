@@ -2,7 +2,7 @@ const http = require('http');
 const express = require('express');
 const ws = require('ws');
 
-const port = parseInt(process.env['PORT'], 10) || 9000;
+const port = parseInt(process.env['PORT'], 10) || 9001;
 
 const numPlayerMatrixElements =
   (3+4) + // hmd
