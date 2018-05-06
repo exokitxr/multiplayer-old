@@ -49,6 +49,8 @@ app.get('/', (req, res, next) => {
 const server = http.createServer(app);
 const wss = new ws.Server({server});
 wss.on('connection', ws => {
+  console.log('player connection');
+
   let localId = null;
 
   const _broadcastMessage = m => {
