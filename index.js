@@ -4,6 +4,37 @@ const ws = require('ws');
 
 const port = parseInt(process.env['PORT'], 10) || 9001;
 
+const _jsonParse = s => {
+  try {
+    return JSON.parse(s);
+  } catch (err) {
+    return null;
+  }
+};
+const MESSAGE_TYPES = (() => {
+  let id = 0;
+  return {
+    MATRIX: id++,
+    AUDIO: id++,
+  };
+})();
+const _makeMatrixMessage = (localId, matrixBuffer) => {
+  const buffer = new Buffer(matrixBuffer.byteLength + Uint32Array.BYTES_PER_ELEMENT*2);
+  const uint32Array = new Uint32Array(buffer.buffer, buffer.byteOffset, 2);
+  uint32Array[0] = MESSAGE_TYPES.MATRIX;
+  uint32Array[1] = localId;
+  buffer.set(matrixBuffer, Uint32Array.BYTES_PER_ELEMENT*2);
+  return buffer;
+};
+const _makeAudioMessage = (localId, audioBuffer) => {
+  const buffer = new Buffer(audioBuffer.byteLength + Uint32Array.BYTES_PER_ELEMENT*2);
+  const uint32Array = new Uint32Array(buffer.buffer, buffer.byteOffset, 2);
+  uint32Array[0] = MESSAGE_TYPES.AUDIO;
+  uint32Array[1] = localId;
+  buffer.set(audioBuffer, Uint32Array.BYTES_PER_ELEMENT*2);
+  return buffer;
+};
+
 const numPlayerMatrixElements =
   (3+4) + // hmd
   (1 + (3+4)) * 2 + // gamepads
@@ -12,7 +43,7 @@ class Player {
   constructor(id) {
     this.id = id;
 
-    const matrix = new ArrayBuffer(numPlayerMatrixElements * Float32Array.BYTES_PER_ELEMENT);
+    const matrix = new ArrayBuffer(numPlayerMatrixElements*Float32Array.BYTES_PER_ELEMENT);
     matrix.setUint8Array = (() => {
       const uint8Array = new Uint8Array(matrix);
       return newUint8Array => {
@@ -31,8 +62,7 @@ const _getWorldSnapshot = () => {
     if (player) {
       const {id} = player;
       result.push(JSON.stringify({type: 'playerEnter', id}));
-      result.push(JSON.stringify({type: 'setContext', id}));
-      result.push(player.matrix);
+      result.push(_makeMatrixMessage(id, player.matrix));
     }
   }
   return result;
@@ -74,28 +104,49 @@ wss.on('connection', ws => {
 
   ws.on('message', m => {
     if (typeof m === 'string') {
-      const j = JSON.parse(m);
-      const {id} = j;
-      players[id] = new Player(id);
-      localId = id;
+      const j = _jsonParse(m);
+      if (j) {
+        const {id} = j;
+        if (typeof id === 'number') {
+          players[id] = new Player(id);
+          localId = id;
 
-      _broadcastMessage(JSON.stringify({type: 'playerEnter', id}));
+          _broadcastMessage(JSON.stringify({type: 'playerEnter', id}));
 
-      connections.push(ws);
+          connections.push(ws);
 
-      console.log('player join', {id});
-    } else {
-      if (localId) {
-        const player = players[localId];
-
-        player.matrix.setUint8Array(m);
-
-        _broadcastMessages([
-          JSON.stringify({type: 'setContext', id: player.id}),
-          player.matrix,
-        ]);
+          console.log('player join', {id});
+        } else {
+          console.warn('invalid player join message', j);
+        }
       } else {
-        console.warn('got positional message for null player id');
+        console.warn('cannot parse player join message', JSON.stringify(m));
+      }
+    } else {
+      if (m.byteLength >= Uint32Array.BYTES_PER_ELEMENT*2) {
+        if ((m.byteOffset % 4) !== 0) {
+          const m2 = new Buffer(new ArrayBuffer(m.byteLength));
+          m2.set(m);
+          m = m2;
+        }
+        const type = new Uint32Array(m.buffer, m.byteOffset + 0, 1)[0];
+        const id = new Uint32Array(m.buffer, m.byteOffset + Uint32Array.BYTES_PER_ELEMENT, 1)[0];
+
+        if (type === MESSAGE_TYPES.MATRIX) {
+          const player = players[id];
+          const matrixBuffer = m.slice(Uint32Array.BYTES_PER_ELEMENT*2);
+          player.matrix.setUint8Array(matrixBuffer);
+
+          _broadcastMessage(_makeMatrixMessage(id, matrixBuffer));
+        } else if (type === MESSAGE_TYPES.AUDIO) {
+          const audioBuffer = m.slice(Uint32Array.BYTES_PER_ELEMENT);
+
+          _broadcastMessage(_makeAudioMessage(id, audioBuffer));
+        } else {
+          console.warn('invalid player binary message type', type);
+        }
+      } else {
+        console.warn('invalid player binary message', m.byteLength);
       }
     }
   });
