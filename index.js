@@ -117,4 +117,6 @@ wss.on('connection', ws => {
     ws.send(worldSnapshot[i]);
   }
 });
-server.listen(port);
+server.listen(port, () => {
+  console.log(`http://127.0.0.1:${port}`);
+});
