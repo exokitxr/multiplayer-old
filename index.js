@@ -159,5 +159,5 @@ wss.on('connection', ws => {
   }
 });
 server.listen(port, () => {
-  console.log(`http://127.0.0.1:${port}`);
+  console.log(`ws://127.0.0.1:${port}`);
 });
