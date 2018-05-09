@@ -91,16 +91,6 @@ wss.on('connection', ws => {
       }
     }
   };
-  /* const _broadcastMessages = (ms, self = false) => {
-    for (let i = 0; i < connections.length; i++) {
-      const c = connections[i];
-      if ((self || c !== ws) && c.readyState === ws.OPEN) {
-        for (let j = 0; j < ms.length; j++) {
-          c.send(ms[j]);
-        }
-      }
-    }
-  }; */
 
   ws.on('message', m => {
     if (typeof m === 'string') {
