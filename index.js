@@ -18,19 +18,19 @@ const MESSAGE_TYPES = (() => {
     AUDIO: id++,
   };
 })();
-const _makeMatrixMessage = (localId, matrixBuffer) => {
+const _makeMatrixMessage = (id, matrixBuffer) => {
   const buffer = new Buffer(matrixBuffer.byteLength + Uint32Array.BYTES_PER_ELEMENT*2);
   const uint32Array = new Uint32Array(buffer.buffer, buffer.byteOffset, 2);
   uint32Array[0] = MESSAGE_TYPES.MATRIX;
-  uint32Array[1] = localId;
+  uint32Array[1] = id;
   buffer.set(matrixBuffer, Uint32Array.BYTES_PER_ELEMENT*2);
   return buffer;
 };
-const _makeAudioMessage = (localId, audioBuffer) => {
+const _makeAudioMessage = (id, audioBuffer) => {
   const buffer = new Buffer(audioBuffer.byteLength + Uint32Array.BYTES_PER_ELEMENT*2);
   const uint32Array = new Uint32Array(buffer.buffer, buffer.byteOffset, 2);
   uint32Array[0] = MESSAGE_TYPES.AUDIO;
-  uint32Array[1] = localId;
+  uint32Array[1] = id;
   buffer.set(audioBuffer, Uint32Array.BYTES_PER_ELEMENT*2);
   return buffer;
 };
