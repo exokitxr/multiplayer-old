@@ -83,24 +83,24 @@ wss.on('connection', ws => {
 
   let localId = null;
 
-  const _broadcastMessage = m => {
+  const _broadcastMessage = (m, self = false) => {
     for (let i = 0; i < connections.length; i++) {
       const c = connections[i];
-      if (c !== ws && c.readyState === ws.OPEN) {
+      if ((self || c !== ws) && c.readyState === ws.OPEN) {
         c.send(m);
       }
     }
   };
-  const _broadcastMessages = ms => {
+  /* const _broadcastMessages = (ms, self = false) => {
     for (let i = 0; i < connections.length; i++) {
       const c = connections[i];
-      if (c !== ws && c.readyState === ws.OPEN) {
+      if ((self || c !== ws) && c.readyState === ws.OPEN) {
         for (let j = 0; j < ms.length; j++) {
           c.send(ms[j]);
         }
       }
     }
-  };
+  }; */
 
   ws.on('message', m => {
     if (typeof m === 'string') {
