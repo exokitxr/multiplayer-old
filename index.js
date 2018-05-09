@@ -141,7 +141,7 @@ wss.on('connection', ws => {
         } else if (type === MESSAGE_TYPES.AUDIO) {
           const audioBuffer = m.slice(Uint32Array.BYTES_PER_ELEMENT*2);
 
-          _broadcastMessage(_makeAudioMessage(id, audioBuffer), true);
+          _broadcastMessage(_makeAudioMessage(id, audioBuffer));
         } else {
           console.warn('invalid player binary message type', type);
         }
