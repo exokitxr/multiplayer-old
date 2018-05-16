@@ -1,7 +1,7 @@
 {
-  "name": "webmr-server",
-  "version": "0.0.6",
-  "description": "Exokit multiplayer server",
+  "name": "webmr-multiplayer",
+  "version": "0.0.1",
+  "description": "webmr multiplayer server",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
