@@ -108,7 +108,7 @@ app.delete('/servers/:name', (req, res, next) => {
 const server = http.createServer(app);
 const wss = new ws.Server({server});
 const _startServer = name => {
-  const serverUrl = '/' + name;
+  const serverUrl = '/servers/' + name;
 
   const players = {};
   const connections = [];
