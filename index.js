@@ -22,7 +22,7 @@ const MESSAGE_TYPES = (() => {
   };
 })();
 const _makeMatrixMessage = (id, matrixBuffer) => {
-  const buffer = Buffer.from(matrixBuffer.byteLength + Uint32Array.BYTES_PER_ELEMENT*2);
+  const buffer = Buffer.allocUnsafe(matrixBuffer.byteLength + Uint32Array.BYTES_PER_ELEMENT*2);
   const uint32Array = new Uint32Array(buffer.buffer, buffer.byteOffset, 2);
   uint32Array[0] = MESSAGE_TYPES.MATRIX;
   uint32Array[1] = id;
@@ -30,7 +30,7 @@ const _makeMatrixMessage = (id, matrixBuffer) => {
   return buffer;
 };
 const _makeAudioMessage = (id, audioBuffer) => {
-  const buffer = Buffer.from(audioBuffer.byteLength + Uint32Array.BYTES_PER_ELEMENT*2);
+  const buffer = Buffer.allocUnsafe(audioBuffer.byteLength + Uint32Array.BYTES_PER_ELEMENT*2);
   const uint32Array = new Uint32Array(buffer.buffer, buffer.byteOffset, 2);
   uint32Array[0] = MESSAGE_TYPES.AUDIO;
   uint32Array[1] = id;
