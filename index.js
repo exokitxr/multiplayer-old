@@ -198,10 +198,9 @@ const _startServer = name => {
       parseQueryString: true,
     });
 
-    if (parsedUrl.pathname === serverUrl && parsedUrl.query.id) {
+    let localId = parseInt(parsedUrl.query.id, 10);
+    if (parsedUrl.pathname === serverUrl && !isNaN(localId)) {
       console.log('player connection', parsedUrl.pathname, parsedUrl.query.id);
-
-      const localId = parsedUrl.query.id;
 
       const _broadcastMessage = (m, self = false) => {
         for (let i = 0; i < connections.length; i++) {
