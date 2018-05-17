@@ -1,5 +1,7 @@
 const http = require('http');
 const express = require('express');
+const bodyParser = require('body-parser');
+const bodyParserJson = bodyParser.json();
 const ws = require('ws');
 
 const port = parseInt(process.env['PORT'], 10) || 9001;
@@ -53,111 +55,138 @@ class Player {
     this.matrix = matrix;
   }
 }
-const players = {};
-
-const _getWorldSnapshot = () => {
-  const result = [];
-  for (const id in players) {
-    const player = players[id];
-    if (player) {
-      const {id} = player;
-      result.push(JSON.stringify({type: 'playerEnter', id}));
-      result.push(_makeMatrixMessage(id, player.matrix));
-    }
-  }
-  return result;
-};
-
-const connections = [];
 
 const app = express();
 app.get('/', (req, res, next) => {
   console.log('got request', req.method, req.url);
 
-  res.send('Hello, webmr-server!\n');
+  res.send('Hello, webmr-multiplayer!\n');
+});
+const servers = [];
+app.get('/servers', (req, res, next) => {
+  res.json({
+    servers,
+  });
+});
+app.post('/servers', bodyParserJson, (req, res, next) => {
+  if (req.body && typeof req.body.name === 'string') {
+    _startServer(name);
+  } else {
+    res.status(400);
+    res.end();
+  }
 });
 const server = http.createServer(app);
 const wss = new ws.Server({server});
-wss.on('connection', ws => {
-  console.log('player connection');
+const _startServer = name => {
+  const serverUrl = '/' + name;
 
-  let localId = null;
+  const players = {};
+  const connections = [];
 
-  const _broadcastMessage = (m, self = false) => {
-    for (let i = 0; i < connections.length; i++) {
-      const c = connections[i];
-      if ((self || c !== ws) && c.readyState === ws.OPEN) {
-        c.send(m);
+  const _getWorldSnapshot = () => {
+    const result = [];
+    for (const id in players) {
+      const player = players[id];
+      if (player) {
+        const {id} = player;
+        result.push(JSON.stringify({type: 'playerEnter', id}));
+        result.push(_makeMatrixMessage(id, player.matrix));
       }
     }
+    return result;
   };
 
-  ws.on('message', m => {
-    if (typeof m === 'string') {
-      const j = _jsonParse(m);
-      if (j) {
-        const {id} = j;
-        if (typeof id === 'number') {
-          players[id] = new Player(id);
-          localId = id;
+  wss.on('connection', (ws, req) => {
+    const {url} = req;
 
-          _broadcastMessage(JSON.stringify({type: 'playerEnter', id}));
+    if (url === serverUrl) {
+      console.log('player connection', url);
 
-          connections.push(ws);
+      let localId = null;
 
-          console.log('player join', {id});
+      const _broadcastMessage = (m, self = false) => {
+        for (let i = 0; i < connections.length; i++) {
+          const c = connections[i];
+          if ((self || c !== ws) && c.readyState === ws.OPEN) {
+            c.send(m);
+          }
+        }
+      };
+
+      ws.on('message', m => {
+        if (typeof m === 'string') {
+          const j = _jsonParse(m);
+          if (j) {
+            const {id} = j;
+            if (typeof id === 'number') {
+              players[id] = new Player(id);
+              localId = id;
+
+              _broadcastMessage(JSON.stringify({type: 'playerEnter', id}));
+
+              connections.push(ws);
+
+              console.log('player join', {id});
+            } else {
+              console.warn('invalid player join message', j);
+            }
+          } else {
+            console.warn('cannot parse player join message', JSON.stringify(m));
+          }
         } else {
-          console.warn('invalid player join message', j);
-        }
-      } else {
-        console.warn('cannot parse player join message', JSON.stringify(m));
-      }
-    } else {
-      if (m.byteLength >= Uint32Array.BYTES_PER_ELEMENT*2) {
-        if ((m.byteOffset % 4) !== 0) {
-          const m2 = new Buffer(new ArrayBuffer(m.byteLength));
-          m2.set(m);
-          m = m2;
-        }
-        const type = new Uint32Array(m.buffer, m.byteOffset + 0, 1)[0];
-        const id = new Uint32Array(m.buffer, m.byteOffset + Uint32Array.BYTES_PER_ELEMENT, 1)[0];
+          if (m.byteLength >= Uint32Array.BYTES_PER_ELEMENT*2) {
+            if ((m.byteOffset % 4) !== 0) {
+              const m2 = new Buffer(new ArrayBuffer(m.byteLength));
+              m2.set(m);
+              m = m2;
+            }
+            const type = new Uint32Array(m.buffer, m.byteOffset + 0, 1)[0];
+            const id = new Uint32Array(m.buffer, m.byteOffset + Uint32Array.BYTES_PER_ELEMENT, 1)[0];
 
-        if (type === MESSAGE_TYPES.MATRIX) {
-          const player = players[id];
-          const matrixBuffer = m.slice(Uint32Array.BYTES_PER_ELEMENT*2);
-          player.matrix.setUint8Array(matrixBuffer);
+            if (type === MESSAGE_TYPES.MATRIX) {
+              const player = players[id];
+              const matrixBuffer = m.slice(Uint32Array.BYTES_PER_ELEMENT*2);
+              player.matrix.setUint8Array(matrixBuffer);
 
-          _broadcastMessage(_makeMatrixMessage(id, matrixBuffer));
-        } else if (type === MESSAGE_TYPES.AUDIO) {
-          const audioBuffer = m.slice(Uint32Array.BYTES_PER_ELEMENT*2);
+              _broadcastMessage(_makeMatrixMessage(id, matrixBuffer));
+            } else if (type === MESSAGE_TYPES.AUDIO) {
+              const audioBuffer = m.slice(Uint32Array.BYTES_PER_ELEMENT*2);
 
-          _broadcastMessage(_makeAudioMessage(id, audioBuffer));
-        } else {
-          console.warn('invalid player binary message type', type);
+              _broadcastMessage(_makeAudioMessage(id, audioBuffer));
+            } else {
+              console.warn('invalid player binary message type', type);
+            }
+          } else {
+            console.warn('invalid player binary message', m.byteLength);
+          }
         }
-      } else {
-        console.warn('invalid player binary message', m.byteLength);
+      });
+      ws.on('close', () => {
+        if (localId) {
+          const id = localId;
+          players[id] = null;
+
+          _broadcastMessage(JSON.stringify({type: 'playerLeave', id}));
+
+          connections.splice(connections.indexOf(ws), 1);
+
+          console.log('player leave', {id});
+        }
+      });
+
+      const worldSnapshot = _getWorldSnapshot();
+      for (let i = 0; i < worldSnapshot.length; i++) {
+        ws.send(worldSnapshot[i]);
       }
     }
   });
-  ws.on('close', () => {
-    if (localId) {
-      const id = localId;
-      players[id] = null;
 
-      _broadcastMessage(JSON.stringify({type: 'playerLeave', id}));
-
-      connections.splice(connections.indexOf(ws), 1);
-
-      console.log('player leave', {id});
-    }
+  servers.push({
+    name,
   });
-
-  const worldSnapshot = _getWorldSnapshot();
-  for (let i = 0; i < worldSnapshot.length; i++) {
-    ws.send(worldSnapshot[i]);
-  }
-});
+};
+_startServer('');
 server.listen(port, () => {
-  console.log(`ws://127.0.0.1:${port}`);
+  console.log(`ws://127.0.0.1:${port}/`);
 });
