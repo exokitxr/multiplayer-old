@@ -67,7 +67,17 @@ app.get('/', (req, res, next) => {
 <head></head>
 <body>
   <h1>Mutiplayer servers (live)</h1>
-  ${servers.map(server => `<a href="/servers/${server.name}">${'⌨️\xa0/servers/' + server.name}</a><br>`).join('\n')}
+  ${servers.map(server => `<a href="/servers/${server.name}" class=server>${'⌨️\xa0/servers/' + server.name}</a><br>`).join('\n')}
+  <script>
+    window.onload = () => {
+      const playerId = Math.floor(Math.random() * 0xFFFFFFFF);
+
+      const serverEls = document.querySelectorAll('.server');
+      for (let i = 0; i < serverEls.length; i++) {
+        serverEls[i].href += '?id=' + playerId;
+      }
+    };
+  </script>
 </body>
 </html>
 `);
