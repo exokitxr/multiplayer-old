@@ -107,7 +107,7 @@ app.get('/servers/:name', (req, res, next) => {
   }
   .header {
     display: flex;
-    height: 80px;
+    height: 50px;
     padding: 20px;
     font-size: 20px;
     background-color: #222;
