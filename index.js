@@ -144,6 +144,11 @@ app.get('/servers/:name', (req, res, next) => {
         contentEl.appendChild(div);
       };
 
+      const lastMessages = {
+        matrix: {},
+        audio: {},
+      };
+
       const ws = new WebSocket(location.href.replace(/^http:/, 'ws:'));
       ws.binaryType = 'arraybuffer';
       ws.onmessage = e => {
@@ -154,7 +159,8 @@ app.get('/servers/:name', (req, res, next) => {
           const {type} = j;
 
           switch (type) {
-            case 'playerEnter': {
+            case 'playerEnter':
+            case 'playerLeave': {
               _writeLog(JSON.stringify(j));
               break;
             }
@@ -171,15 +177,35 @@ app.get('/servers/:name', (req, res, next) => {
 
           switch (type) {
             case MESSAGE_TYPES.MATRIX: {
-              _writeLog('matrix ' + id);
+              const lastMatrixMessage = lastMessages.matrix[id];
+              const now = Date.now();
+              if (lastMatrixMessage === undefined || (now - lastMatrixMessage) >= 2000) {
+                _writeLog(JSON.stringify({
+                  type: 'matrix',
+                  id,
+                  position: Array.from(new Float32Array(arrayBuffer, 0 + 2*Uint32Array.BYTES_PER_ELEMENT, 3)),
+                  quaternion: Array.from(new Float32Array(arrayBuffer, 0 + 2*Uint32Array.BYTES_PER_ELEMENT + 3*Float32Array.BYTES_PER_ELEMENT, 3)),
+                }));
+
+                lastMessages.matrix[id] = now;
+              }
               break;
             }
             case MESSAGE_TYPES.AUDIO: {
-              _writeLog('audio ' + id);
+              const lastAudioMessage = lastMessages.audio[id];
+              const now = Date.now();
+              if (lastAudioMessage === undefined || (now - lastAudioMessage) >= 2000) {
+                _writeLog(JSON.stringify({
+                  type: 'audio',
+                  id,
+                }));
+
+                lastMessages.audio[id] = now;
+              }
               break;
             }
             default: {
-              console.log('got unknown message type', {type});
+              console.log('got unknown binary message type', {type});
               break;
             }
           }
