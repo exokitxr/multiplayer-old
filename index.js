@@ -78,7 +78,20 @@ app.post('/servers', bodyParserJson, (req, res, next) => {
     });
   } else {
     res.status(400);
-    res.end();
+    res.end(http.STATUS_CODES[400]);
+  }
+});
+app.delete('/servers/:name', (req, res, next) => {
+  const {name} = req.params;
+  const server = _stopServer(name);
+  if (server) {
+    const {name} = server;
+    res.json({
+      name,
+    });
+  } else {
+    res.status(404);
+    res.end(http.STATUS_CODES[404]);
   }
 });
 const server = http.createServer(app);
@@ -102,7 +115,7 @@ const _startServer = name => {
     return result;
   };
 
-  wss.on('connection', (ws, req) => {
+  const _onconnection = (ws, req) => {
     const {url} = req;
 
     if (url === serverUrl) {
@@ -185,11 +198,26 @@ const _startServer = name => {
         ws.send(worldSnapshot[i]);
       }
     }
-  });
+  };
+  wss.on('connection', _onconnection);
 
   servers.push({
     name,
+    kill: () => {
+      wss.removeListener('connection', _onconnection);
+    },
   });
+};
+const _stopServer = name => {
+  const index = servers.findIndex(server => server.name === name);
+  if (index !== -1) {
+    const server = servers[index];
+    server.kill();
+    servers.splice(index, 1);
+    return server;
+  } else {
+    return null;
+  }
 };
 _startServer('');
 server.listen(port, () => {
