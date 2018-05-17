@@ -282,13 +282,16 @@ const _startServer = name => {
       ws.on('close', () => {
         if (localId) {
           const id = localId;
-          players[id] = null;
+          const player = players[id];
 
-          _broadcastMessage(JSON.stringify({type: 'playerLeave', id}));
+          if (player) {
+            _broadcastMessage(JSON.stringify({type: 'playerLeave', id}));
 
+            players[id] = null;
+          }
           connections.splice(connections.indexOf(ws), 1);
 
-          console.log('player leave', {id});
+          console.log('disconnect', {id});
         }
       });
 
