@@ -59,8 +59,6 @@ class Player {
 const app = express();
 const servers = [];
 app.get('/', (req, res, next) => {
-  console.log('got request', req.method, req.url);
-
   res.type('text/html');
   res.end(`\
 <!doctype html>
@@ -107,6 +105,17 @@ app.delete('/servers/:name', (req, res, next) => {
 });
 const server = http.createServer(app);
 const wss = new ws.Server({server});
+const connectionListeners = [];
+wss.on('connection', (ws, req) => {
+  for (let i = 0; i < connectionListeners.length; i++) {
+    if (connectionListeners[i](ws, req)) {
+      console.log('matched');
+      return;
+    }
+  }
+  console.log('close');
+  ws.close();
+});
 const _startServer = name => {
   const serverUrl = '/servers/' + name;
 
@@ -208,14 +217,18 @@ const _startServer = name => {
       for (let i = 0; i < worldSnapshot.length; i++) {
         ws.send(worldSnapshot[i]);
       }
+
+      return true;
+    } else {
+      return false;
     }
   };
-  wss.on('connection', _onconnection);
+  connectionListeners.push(_onconnection);
 
   servers.push({
     name,
     kill: () => {
-      wss.removeListener('connection', _onconnection);
+      connectionListeners.splice(connectionListeners.indexOf(_onconnection), 1);
     },
   });
 };
