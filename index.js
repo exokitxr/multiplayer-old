@@ -57,29 +57,34 @@ class Player {
 }
 
 const app = express();
+const servers = [];
 app.get('/', (req, res, next) => {
   console.log('got request', req.method, req.url);
 
-  res.send('Hello, webmr-multiplayer!\n');
+  res.type('text/html');
+  res.end(`\
+<!doctype html>
+<html>
+<head></head>
+<body>
+  <h1>Mutiplayer servers (live)</h1>
+  ${servers.map(server => `<a href="/${server.name}">${server.name}</a>`)}
+</body>
+</html>
+`);
 });
-const servers = [];
 app.get('/servers', (req, res, next) => {
   res.json({
     servers,
   });
 });
-app.post('/servers', bodyParserJson, (req, res, next) => {
-  if (req.body && typeof req.body.name === 'string') {
-    const {name} = req.body;
-    _startServer(name);
+app.post('/servers/:name', (req, res, next) => {
+  const {name} = req.params;
+  _startServer(name);
 
-    res.json({
-      name,
-    });
-  } else {
-    res.status(400);
-    res.end(http.STATUS_CODES[400]);
-  }
+  res.json({
+    name,
+  });
 });
 app.delete('/servers/:name', (req, res, next) => {
   const {name} = req.params;
