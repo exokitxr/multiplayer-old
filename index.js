@@ -115,7 +115,7 @@ app.get('/servers/:name', (req, res, next) => {
   }
   .content {
     padding: 5px;
-    font-size: 13px;
+    font-size: 12px;
     line-height: 1.6;
     flex-grow: 1;
     overflow: hidden;
