@@ -72,6 +72,10 @@ app.post('/servers', bodyParserJson, (req, res, next) => {
   if (req.body && typeof req.body.name === 'string') {
     const {name} = req.body;
     _startServer(name);
+
+    res.json({
+      name,
+    });
   } else {
     res.status(400);
     res.end();
