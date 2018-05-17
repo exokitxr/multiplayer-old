@@ -80,11 +80,17 @@ app.get('/servers', (req, res, next) => {
 });
 app.post('/servers/:name', (req, res, next) => {
   const {name} = req.params;
-  _startServer(name);
 
-  res.json({
-    name,
-  });
+  if (!servers.some(server => server.name === name)) {
+    _startServer(name);
+
+    res.json({
+      name,
+    });
+  } else {
+    res.status(409);
+    res.end(http.STATUS_CODES[409]);
+  }
 });
 app.delete('/servers/:name', (req, res, next) => {
   const {name} = req.params;
