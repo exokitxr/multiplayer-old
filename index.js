@@ -149,7 +149,7 @@ app.get('/servers/:name', (req, res, next) => {
         audio: {},
       };
 
-      const ws = new WebSocket(location.href.replace(/^http:/, 'ws:'));
+      const ws = new WebSocket(location.href.replace(/^http/, 'ws'));
       ws.binaryType = 'arraybuffer';
       ws.onmessage = e => {
         const {data} = e;
