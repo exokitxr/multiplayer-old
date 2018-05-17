@@ -76,6 +76,30 @@ app.get('/servers', (req, res, next) => {
     servers,
   });
 });
+app.get('/servers/:name', (req, res, next) => {
+  res.type('text/html');
+  res.end(`\
+<html>
+<head>
+<link href="https://fonts.googleapis.com/css?family=Roboto+Mono" rel="stylesheet">
+<style>
+  body {
+    margin: 0;
+    background-color: #111;
+    font-family: 'Roboto Mono', monospace;
+  }
+</style>
+</head>
+<body>
+  <div id=content></div>
+  <script>
+    const content = document.getElementById('content');
+    console.log('draw content', content); // XXX
+  </script>
+</body>
+</html>
+`);
+});
 app.post('/servers/:name', (req, res, next) => {
   const {name} = req.params;
 
