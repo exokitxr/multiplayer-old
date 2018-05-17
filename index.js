@@ -118,6 +118,7 @@ app.get('/servers/:name', (req, res, next) => {
     font-size: 13px;
     line-height: 1.6;
     flex-grow: 1;
+    overflow: hidden;
   }
 </style>
 </head>
@@ -125,22 +126,36 @@ app.get('/servers/:name', (req, res, next) => {
   <div class=header id=header>Not connected</div>
   <div class=content id=content></div>
   <script>
+    const MESSAGE_TYPES = (() => {
+      let id = 0;
+      return {
+        MATRIX: id++,
+        AUDIO: id++,
+      };
+    })();
+
     window.onload = () => {
       const headerEl = document.getElementById('header');
       const contentEl = document.getElementById('content');
+
+      const _writeLog = s => {
+        const div = document.createElement('div');
+        div.textContent = s;
+        contentEl.appendChild(div);
+      };
 
       const ws = new WebSocket(location.href.replace(/^http:/, 'ws:'));
       ws.binaryType = 'arraybuffer';
       ws.onmessage = e => {
         const {data} = e;
+
         if (typeof data === 'string') {
           const j = JSON.parse(data);
           const {type} = j;
+
           switch (type) {
             case 'playerEnter': {
-              const div = document.createElement('div');
-              div.textContent = JSON.stringify(j);
-              contentEl.appendChild(div);
+              _writeLog(JSON.stringify(j));
               break;
             }
             default: {
@@ -148,10 +163,26 @@ app.get('/servers/:name', (req, res, next) => {
               break;
             }
           }
-          console.log('got json', j);
         } else {
-          const b = data;
-          console.log('got buffer', b); // XXX
+          const arrayBuffer = data;
+          const uint32Array = new Uint32Array(arrayBuffer, 0, 2);
+          const type = uint32Array[0];
+          const id = uint32Array[1];
+
+          switch (type) {
+            case MESSAGE_TYPES.MATRIX: {
+              _writeLog('matrix ' + id);
+              break;
+            }
+            case MESSAGE_TYPES.AUDIO: {
+              _writeLog('audio ' + id);
+              break;
+            }
+            default: {
+              console.log('got unknown message type', {type});
+              break;
+            }
+          }
         }
       };
       ws.onopen = () => {
