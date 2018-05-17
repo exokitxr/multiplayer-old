@@ -68,7 +68,7 @@ app.get('/', (req, res, next) => {
 <head></head>
 <body>
   <h1>Mutiplayer servers (live)</h1>
-  ${servers.map(server => `<a href="/${server.name}">${server.name}</a>`)}
+  ${servers.map(server => `<a href="/${server.name}">${'⌨️\xa0' + server.name}</a><br>`).join('\n')}
 </body>
 </html>
 `);
