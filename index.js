@@ -83,18 +83,51 @@ app.get('/servers/:name', (req, res, next) => {
 <head>
 <link href="https://fonts.googleapis.com/css?family=Roboto+Mono" rel="stylesheet">
 <style>
+  * {
+    box-sizing: border-box;
+  }
   body {
+    display: flex;
     margin: 0;
     background-color: #111;
+    color: #FFF;
     font-family: 'Roboto Mono', monospace;
+    flex-direction: column;
+  }
+  .header {
+    display: flex;
+    height: 80px;
+    padding: 20px;
+    font-size: 20px;
+    background-color: #222;
+    align-items: center;
+  }
+  .content {
+    flex-grow: 1;
   }
 </style>
 </head>
 <body>
-  <div id=content></div>
+  <div class=header id=header>Not connected</div>
+  <div class=content id=content></div>
   <script>
-    const content = document.getElementById('content');
-    console.log('draw content', content); // XXX
+    window.onload = () => {
+      const headerEl = document.getElementById('header');
+      const contentEl = document.getElementById('content');
+
+      const ws = new WebSocket(location.href.replace(/^http:/, 'ws:'));
+      ws.onmessage = e => {
+        console.log(e.data);
+      };
+      ws.onopen = () => {
+        headerEl.style.backgroundColor = '#4CAF50';
+        headerEl.textContent = 'Connected';
+      };
+      ws.onclose = () => {
+        headerEl.style.backgroundColor = '#F44336';
+        headerEl.textContent = 'Not connected';
+      };
+    };
   </script>
 </body>
 </html>
