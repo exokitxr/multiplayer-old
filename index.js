@@ -230,7 +230,7 @@ const _stopServer = name => {
     return null;
   }
 };
-_startServer('');
+_startServer('root');
 server.listen(port, () => {
   console.log(`ws://127.0.0.1:${port}/`);
 });
