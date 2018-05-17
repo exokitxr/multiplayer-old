@@ -127,8 +127,16 @@ app.get('/servers/:name', (req, res, next) => {
       const contentEl = document.getElementById('content');
 
       const ws = new WebSocket(location.href.replace(/^http:/, 'ws:'));
+      ws.binaryType = 'arraybuffer';
       ws.onmessage = e => {
-        console.log(e.data);
+        const {data} = e;
+        if (typeof data === 'string') {
+          const j = JSON.parse(data);
+          console.log('got json', j);
+        } else {
+          const b = data;
+          console.log('got buffer', b);
+        }
       };
       ws.onopen = () => {
         headerEl.style.backgroundColor = '#4CAF50';
