@@ -218,7 +218,7 @@ const _startServer = name => {
 
     let localId = parseInt(parsedUrl.query.id, 10);
     if (parsedUrl.pathname === serverUrl && !isNaN(localId)) {
-      console.log('player connection', parsedUrl.pathname, parsedUrl.query.id);
+      console.log('connection', parsedUrl.pathname, parsedUrl.query.id);
 
       const _broadcastMessage = (m, self = false) => {
         for (let i = 0; i < connections.length; i++) {
@@ -241,8 +241,6 @@ const _startServer = name => {
                 players[localId] = new Player(localId);
 
                 _broadcastMessage(JSON.stringify({type: 'playerEnter', id: localId}));
-
-                connections.push(ws);
                 break;
               }
               default: {
@@ -298,6 +296,8 @@ const _startServer = name => {
       for (let i = 0; i < worldSnapshot.length; i++) {
         ws.send(worldSnapshot[i]);
       }
+
+      connections.push(ws);
 
       return true;
     } else {
