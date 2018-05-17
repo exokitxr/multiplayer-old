@@ -1,4 +1,5 @@
 const http = require('http');
+const url = require('url');
 const express = require('express');
 const bodyParser = require('body-parser');
 const bodyParserJson = bodyParser.json();
@@ -193,12 +194,14 @@ const _startServer = name => {
   };
 
   const _onconnection = (ws, req) => {
-    const {url} = req;
+    const parsedUrl = url.parse(req.url, {
+      parseQueryString: true,
+    });
 
-    if (url === serverUrl) {
-      console.log('player connection', url);
+    if (parsedUrl.pathname === serverUrl && parsedUrl.query.id) {
+      console.log('player connection', parsedUrl.pathname, parsedUrl.query.id);
 
-      let localId = null;
+      const localId = parsedUrl.query.id;
 
       const _broadcastMessage = (m, self = false) => {
         for (let i = 0; i < connections.length; i++) {
@@ -212,22 +215,26 @@ const _startServer = name => {
       ws.on('message', m => {
         if (typeof m === 'string') {
           const j = _jsonParse(m);
+
           if (j) {
-            const {id} = j;
-            if (typeof id === 'number') {
-              players[id] = new Player(id);
-              localId = id;
+            const {type} = j;
 
-              _broadcastMessage(JSON.stringify({type: 'playerEnter', id}));
+            switch (type) {
+              case 'playerEnter': {
+                players[localId] = new Player(localId);
 
-              connections.push(ws);
+                _broadcastMessage(JSON.stringify({type: 'playerEnter', id: localId}));
 
-              console.log('player join', {id});
-            } else {
-              console.warn('invalid player join message', j);
+                connections.push(ws);
+                break;
+              }
+              default: {
+                console.warn('invalid player message type', JSON.stringify(type));
+                break;
+              }
             }
           } else {
-            console.warn('cannot parse player join message', JSON.stringify(m));
+            console.warn('cannot parse player message', JSON.stringify(m));
           }
         } else {
           if (m.byteLength >= Uint32Array.BYTES_PER_ELEMENT*2) {
