@@ -114,6 +114,9 @@ app.get('/servers/:name', (req, res, next) => {
     align-items: center;
   }
   .content {
+    padding: 5px;
+    font-size: 13px;
+    line-height: 1.6;
     flex-grow: 1;
   }
 </style>
@@ -132,10 +135,23 @@ app.get('/servers/:name', (req, res, next) => {
         const {data} = e;
         if (typeof data === 'string') {
           const j = JSON.parse(data);
+          const {type} = j;
+          switch (type) {
+            case 'playerEnter': {
+              const div = document.createElement('div');
+              div.textContent = JSON.stringify(j);
+              contentEl.appendChild(div);
+              break;
+            }
+            default: {
+              console.warn('invalid message type', {type});
+              break;
+            }
+          }
           console.log('got json', j);
         } else {
           const b = data;
-          console.log('got buffer', b);
+          console.log('got buffer', b); // XXX
         }
       };
       ws.onopen = () => {
