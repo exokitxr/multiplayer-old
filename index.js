@@ -3,9 +3,12 @@ const url = require('url');
 const express = require('express');
 const bodyParser = require('body-parser');
 const bodyParserJson = bodyParser.json();
+const expressionsJs = require('expressions-js');
 const ws = require('ws');
 
 const port = parseInt(process.env['PORT'], 10) || 9001;
+const FPS = 90;
+const TICK_RATE = Math.floor(1000 / FPS);
 
 const _jsonParse = s => {
   try {
@@ -67,11 +70,14 @@ class Player {
 }
 const numObjectMatrixElements = 3 + 4;
 class TrackedObject {
-  constructor(id, owner) {
+  constructor(id, owner, expression) {
     this.id = id;
     this.owner = owner;
+    this.expression = expression ? expressionsJs.parse(expression) : null;
 
     const matrix = new ArrayBuffer(numObjectMatrixElements*Float32Array.BYTES_PER_ELEMENT);
+    matrix.position = new Float32Array(matrix, 0, 3);
+    matrix.quaternion = new Float32Array(matrix, 3*Float32Array.BYTES_PER_ELEMENT, 4);
     matrix.setUint8Array = (() => {
       const uint8Array = new Uint8Array(matrix);
       return newUint8Array => {
@@ -79,6 +85,27 @@ class TrackedObject {
       };
     })();
     this.matrix = matrix;
+  }
+  setExpression(expression) {
+    this.expression = expression ? expressionsJs.parse(expression) : null;
+  }
+  update() {
+    if (this.expression) {
+      const result = this.expression.call({
+        matrix: [
+          this.matrix[0],
+          this.matrix[1],
+          this.matrix[2],
+        ],
+      });
+      this.matrix.position[0] = result[0];
+      this.matrix.position[1] = result[1];
+      this.matrix.position[2] = result[2];
+
+      return true;
+    } else {
+      return false;
+    }
   }
 }
 
@@ -190,6 +217,7 @@ app.get('/servers/:name', (req, res, next) => {
             case 'playerLeave':
             case 'objectAdd':
             case 'objectRemove':
+            case 'objectSetUpdateExpression':
             case 'sync': {
               _writeLog(JSON.stringify(j));
               break;
@@ -330,8 +358,8 @@ const _startServer = name => {
     for (const id in objects) {
       const object = objects[id];
       if (object) {
-        const {id, owner} = object;
-        result.push(JSON.stringify({type: 'objectAdd', id, owner}));
+        const {id} = object;
+        result.push(JSON.stringify({type: 'objectAdd', id}));
         result.push(_makeObjectMatrixMessage(id, object.matrix));
       }
     }
@@ -356,6 +384,7 @@ const _startServer = name => {
           }
         }
       };
+      ws.broadcastMessage = _broadcastMessage;
 
       ws.on('message', m => {
         if (typeof m === 'string') {
@@ -372,12 +401,10 @@ const _startServer = name => {
                 break;
               }
               case 'objectAdd': {
-                const {id, owner} = j;
-
-                console.log('object add', {id, owner});
+                const {id, owner = -1, expression = null} = j;
 
                 if (!objects[id]) {
-                  objects[id] = new TrackedObject(id, owner);
+                  objects[id] = new TrackedObject(id, owner, expression);
 
                   _broadcastMessage(JSON.stringify({type: 'objectAdd', id, owner}));
                   break;
@@ -386,17 +413,24 @@ const _startServer = name => {
               case 'objectRemove': {
                 const {id} = j;
 
-                console.log('object remove', {id});
+                const object = objects[id];
+                if (object) {
+                  objects[id] = null;
+
+                  _broadcastMessage(JSON.stringify({type: 'objectRemove', id}));
+                  break;
+                }
+              }
+              case 'objectSetUpdateExpression': {
+                const {id, expression} = j;
 
                 const object = objects[id];
                 if (object) {
-                  const {owner} = object;
-
-                  objects[id] = null;
-
-                  _broadcastMessage(JSON.stringify({type: 'objectRemove', id, owner}));
-                  break;
+                  object.setExpression(expression);
+                } else {
+                  console.warn('object set update expression fr nonexistent object', {id, expression});
                 }
+                break;
               }
               default: {
                 console.warn('invalid player message type', JSON.stringify(type));
@@ -475,10 +509,24 @@ const _startServer = name => {
   };
   connectionListeners.push(_onconnection);
 
+  const interval = setInterval(() => {
+    for (const id in objects) {
+      const object = objects[id];
+
+      if (object && object.update()) {
+        for (let i = 0; i < connections.length; i++) {
+          const b = _makeObjectMatrixMessage(id, new Buffer(object.matrix));
+          connections[i].broadcastMessage(_makeObjectMatrixMessage(id, new Buffer(object.matrix)), true);
+        }
+      }
+    }
+  }, TICK_RATE);
+
   servers.push({
     name,
     kill: () => {
       connectionListeners.splice(connectionListeners.indexOf(_onconnection), 1);
+      clearInterval(inverval);
     },
   });
 };
