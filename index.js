@@ -17,14 +17,23 @@ const _jsonParse = s => {
 const MESSAGE_TYPES = (() => {
   let id = 0;
   return {
-    MATRIX: id++,
+    PLAYER_MATRIX: id++,
     AUDIO: id++,
+    OBJECT_MATRIX: id++,
   };
 })();
-const _makeMatrixMessage = (id, matrixBuffer) => {
+const _makePlayerMatrixMessage = (id, matrixBuffer) => {
   const buffer = Buffer.allocUnsafe(matrixBuffer.byteLength + Uint32Array.BYTES_PER_ELEMENT*2);
   const uint32Array = new Uint32Array(buffer.buffer, buffer.byteOffset, 2);
-  uint32Array[0] = MESSAGE_TYPES.MATRIX;
+  uint32Array[0] = MESSAGE_TYPES.PLAYER_MATRIX;
+  uint32Array[1] = id;
+  buffer.set(matrixBuffer, Uint32Array.BYTES_PER_ELEMENT*2);
+  return buffer;
+};
+const _makeObjectMatrixMessage = (id, matrixBuffer) => {
+  const buffer = Buffer.allocUnsafe(matrixBuffer.byteLength + Uint32Array.BYTES_PER_ELEMENT*2);
+  const uint32Array = new Uint32Array(buffer.buffer, buffer.byteOffset, 2);
+  uint32Array[0] = MESSAGE_TYPES.OBJECT_MATRIX;
   uint32Array[1] = id;
   buffer.set(matrixBuffer, Uint32Array.BYTES_PER_ELEMENT*2);
   return buffer;
@@ -47,6 +56,22 @@ class Player {
     this.id = id;
 
     const matrix = new ArrayBuffer(numPlayerMatrixElements*Float32Array.BYTES_PER_ELEMENT);
+    matrix.setUint8Array = (() => {
+      const uint8Array = new Uint8Array(matrix);
+      return newUint8Array => {
+        uint8Array.set(newUint8Array);
+      };
+    })();
+    this.matrix = matrix;
+  }
+}
+const numObjectMatrixElements = 3 + 4;
+class TrackedObject {
+  constructor(id, owner) {
+    this.id = id;
+    this.owner = owner;
+
+    const matrix = new ArrayBuffer(numObjectMatrixElements*Float32Array.BYTES_PER_ELEMENT);
     matrix.setUint8Array = (() => {
       const uint8Array = new Uint8Array(matrix);
       return newUint8Array => {
@@ -129,8 +154,9 @@ app.get('/servers/:name', (req, res, next) => {
     const MESSAGE_TYPES = (() => {
       let id = 0;
       return {
-        MATRIX: id++,
+        PLAYER_MATRIX: id++,
         AUDIO: id++,
+        OBJECT_MATRIX: id++,
       };
     })();
 
@@ -145,8 +171,9 @@ app.get('/servers/:name', (req, res, next) => {
       };
 
       const lastMessages = {
-        matrix: {},
+        playerMatrix: {},
         audio: {},
+        objectMatrix: {},
       };
 
       const ws = new WebSocket(location.href.replace(/^http/, 'ws'));
@@ -160,7 +187,10 @@ app.get('/servers/:name', (req, res, next) => {
 
           switch (type) {
             case 'playerEnter':
-            case 'playerLeave': {
+            case 'playerLeave':
+            case 'objectAdd':
+            case 'objectRemove':
+            case 'sync': {
               _writeLog(JSON.stringify(j));
               break;
             }
@@ -176,18 +206,18 @@ app.get('/servers/:name', (req, res, next) => {
           const id = uint32Array[1];
 
           switch (type) {
-            case MESSAGE_TYPES.MATRIX: {
-              const lastMatrixMessage = lastMessages.matrix[id];
+            case MESSAGE_TYPES.PLAYER_MATRIX: {
+              const lastMatrixMessage = lastMessages.playerMatrix[id];
               const now = Date.now();
               if (lastMatrixMessage === undefined || (now - lastMatrixMessage) >= 2000) {
                 _writeLog(JSON.stringify({
-                  type: 'matrix',
+                  type: 'playerMatrix',
                   id,
                   position: Array.from(new Float32Array(arrayBuffer, 0 + 2*Uint32Array.BYTES_PER_ELEMENT, 3)),
-                  quaternion: Array.from(new Float32Array(arrayBuffer, 0 + 2*Uint32Array.BYTES_PER_ELEMENT + 3*Float32Array.BYTES_PER_ELEMENT, 3)),
+                  quaternion: Array.from(new Float32Array(arrayBuffer, 0 + 2*Uint32Array.BYTES_PER_ELEMENT + 3*Float32Array.BYTES_PER_ELEMENT, 4)),
                 }));
 
-                lastMessages.matrix[id] = now;
+                lastMessages.playerMatrix[id] = now;
               }
               break;
             }
@@ -201,6 +231,21 @@ app.get('/servers/:name', (req, res, next) => {
                 }));
 
                 lastMessages.audio[id] = now;
+              }
+              break;
+            }
+            case MESSAGE_TYPES.OBJECT_MATRIX: {
+              const lastMatrixMessage = lastMessages.objectMatrix[id];
+              const now = Date.now();
+              if (lastMatrixMessage === undefined || (now - lastMatrixMessage) >= 2000) {
+                _writeLog(JSON.stringify({
+                  type: 'objectMatrix',
+                  id,
+                  position: Array.from(new Float32Array(arrayBuffer, 0 + 2*Uint32Array.BYTES_PER_ELEMENT, 3)),
+                  quaternion: Array.from(new Float32Array(arrayBuffer, 0 + 2*Uint32Array.BYTES_PER_ELEMENT + 3*Float32Array.BYTES_PER_ELEMENT, 4)),
+                }));
+
+                lastMessages.objectMatrix[id] = now;
               }
               break;
             }
@@ -269,6 +314,7 @@ const _startServer = name => {
   const serverUrl = '/servers/' + name;
 
   const players = {};
+  const objects = {};
   const connections = [];
 
   const _getWorldSnapshot = () => {
@@ -278,9 +324,18 @@ const _startServer = name => {
       if (player) {
         const {id} = player;
         result.push(JSON.stringify({type: 'playerEnter', id}));
-        result.push(_makeMatrixMessage(id, player.matrix));
+        result.push(_makePlayerMatrixMessage(id, player.matrix));
       }
     }
+    for (const id in objects) {
+      const object = objects[id];
+      if (object) {
+        const {id, owner} = object;
+        result.push(JSON.stringify({type: 'objectAdd', id, owner}));
+        result.push(_makeObjectMatrixMessage(id, object.matrix));
+      }
+    }
+    result.push(JSON.stringify({type: 'sync'}));
     return result;
   };
 
@@ -316,6 +371,33 @@ const _startServer = name => {
                 _broadcastMessage(JSON.stringify({type: 'playerEnter', id: localId}));
                 break;
               }
+              case 'objectAdd': {
+                const {id, owner} = j;
+
+                console.log('object add', {id, owner});
+
+                if (!objects[id]) {
+                  objects[id] = new TrackedObject(id, owner);
+
+                  _broadcastMessage(JSON.stringify({type: 'objectAdd', id, owner}));
+                  break;
+                }
+              }
+              case 'objectRemove': {
+                const {id} = j;
+
+                console.log('object remove', {id});
+
+                const object = objects[id];
+                if (object) {
+                  const {owner} = object;
+
+                  objects[id] = null;
+
+                  _broadcastMessage(JSON.stringify({type: 'objectRemove', id, owner}));
+                  break;
+                }
+              }
               default: {
                 console.warn('invalid player message type', JSON.stringify(type));
                 break;
@@ -334,18 +416,29 @@ const _startServer = name => {
             const type = new Uint32Array(m.buffer, m.byteOffset + 0, 1)[0];
             const id = new Uint32Array(m.buffer, m.byteOffset + Uint32Array.BYTES_PER_ELEMENT, 1)[0];
 
-            if (type === MESSAGE_TYPES.MATRIX) {
-              const player = players[id];
-              const matrixBuffer = m.slice(Uint32Array.BYTES_PER_ELEMENT*2);
-              player.matrix.setUint8Array(matrixBuffer);
+            switch (type) {
+              case MESSAGE_TYPES.PLAYER_MATRIX: {
+                const player = players[id];
+                const matrixBuffer = m.slice(Uint32Array.BYTES_PER_ELEMENT*2);
+                player.matrix.setUint8Array(matrixBuffer);
 
-              _broadcastMessage(_makeMatrixMessage(id, matrixBuffer));
-            } else if (type === MESSAGE_TYPES.AUDIO) {
-              const audioBuffer = m.slice(Uint32Array.BYTES_PER_ELEMENT*2);
+                _broadcastMessage(_makePlayerMatrixMessage(id, matrixBuffer));
+                break;
+              }
+              case MESSAGE_TYPES.AUDIO: {
+                const audioBuffer = m.slice(Uint32Array.BYTES_PER_ELEMENT*2);
 
-              _broadcastMessage(_makeAudioMessage(id, audioBuffer));
-            } else {
-              console.warn('invalid player binary message type', type);
+                _broadcastMessage(_makeAudioMessage(id, audioBuffer));
+                break;
+              }
+              case MESSAGE_TYPES.OBJECT_MATRIX: {
+                const object = objects[id];
+                const matrixBuffer = m.slice(Uint32Array.BYTES_PER_ELEMENT*2);
+                object.matrix.setUint8Array(matrixBuffer);
+
+                _broadcastMessage(_makeObjectMatrixMessage(id, matrixBuffer));
+                break;
+              }
             }
           } else {
             console.warn('invalid player binary message', m.byteLength);
