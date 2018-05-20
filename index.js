@@ -372,6 +372,7 @@ const _startServer = name => {
     });
 
     let localId = parseInt(parsedUrl.query.id, 10);
+    const localPlayerIds = [];
     if (parsedUrl.pathname === serverUrl && !isNaN(localId)) {
       console.log('connection', parsedUrl.pathname, parsedUrl.query.id);
 
@@ -394,9 +395,12 @@ const _startServer = name => {
 
             switch (type) {
               case 'playerEnter': {
-                players[localId] = new Player(localId);
+                const {id} = j;
+                players[id] = new Player(id);
 
-                _broadcastMessage(JSON.stringify({type: 'playerEnter', id: localId}));
+                localPlayerIds.push(id);
+
+                _broadcastMessage(JSON.stringify({type: 'playerEnter', id}));
                 break;
               }
               case 'objectAdd': {
@@ -498,8 +502,8 @@ const _startServer = name => {
         }
       });
       ws.on('close', () => {
-        if (localId) {
-          const id = localId;
+        for (let i = 0; i < localPlayerIds.length; i++) {
+          const id = localPlayerIds[i];
           const player = players[id];
 
           if (player) {
@@ -507,10 +511,11 @@ const _startServer = name => {
 
             players[id] = null;
           }
-          connections.splice(connections.indexOf(ws), 1);
-
-          console.log('disconnect', {id});
         }
+
+        connections.splice(connections.indexOf(ws), 1);
+
+        console.log('disconnect', {id: localId});
       });
 
       const worldSnapshot = _getWorldSnapshot();
