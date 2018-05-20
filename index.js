@@ -515,8 +515,8 @@ const _startServer = name => {
 
       if (object && object.update()) {
         for (let i = 0; i < connections.length; i++) {
-          const b = _makeObjectMatrixMessage(id, new Buffer(object.matrix));
-          connections[i].broadcastMessage(_makeObjectMatrixMessage(id, new Buffer(object.matrix)), true);
+          const b = _makeObjectMatrixMessage(id, Buffer.from(object.matrix));
+          connections[i].broadcastMessage(_makeObjectMatrixMessage(id, Buffer.from(object.matrix)), true);
         }
       }
     }
