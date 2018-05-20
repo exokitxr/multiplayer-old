@@ -410,8 +410,8 @@ const _startServer = name => {
                   objects[id] = new TrackedObject(id, owner, expression);
 
                   _broadcastMessage(JSON.stringify({type: 'objectAdd', id, owner}));
-                  break;
                 }
+                break;
               }
               case 'objectRemove': {
                 const {id} = j;
@@ -421,8 +421,8 @@ const _startServer = name => {
                   objects[id] = null;
 
                   _broadcastMessage(JSON.stringify({type: 'objectRemove', id}));
-                  break;
                 }
+                break;
               }
               case 'objectSetUpdateExpression': {
                 const {id, expression} = j;
