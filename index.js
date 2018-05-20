@@ -487,8 +487,6 @@ const _startServer = name => {
                   const matrixBuffer = m.slice(Uint32Array.BYTES_PER_ELEMENT*2);
                   object.matrix.setUint8Array(matrixBuffer);
 
-                  console.log('broadcast object', id);
-
                   _broadcastMessage(_makeObjectMatrixMessage(id, matrixBuffer));
                 } else {
                   console.warn('ignoring object matrix message for unknown object', {id});
