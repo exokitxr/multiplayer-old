@@ -452,24 +452,43 @@ const _startServer = name => {
             switch (type) {
               case MESSAGE_TYPES.PLAYER_MATRIX: {
                 const player = players[id];
-                const matrixBuffer = m.slice(Uint32Array.BYTES_PER_ELEMENT*2);
-                player.matrix.setUint8Array(matrixBuffer);
 
-                _broadcastMessage(_makePlayerMatrixMessage(id, matrixBuffer));
+                if (player) {
+                  const matrixBuffer = m.slice(Uint32Array.BYTES_PER_ELEMENT*2);
+                  player.matrix.setUint8Array(matrixBuffer);
+
+                  _broadcastMessage(_makePlayerMatrixMessage(id, matrixBuffer));
+                } else {
+                  console.warn('ignoring player matrix message for unknown player', {id});
+                }
                 break;
               }
               case MESSAGE_TYPES.AUDIO: {
-                const audioBuffer = m.slice(Uint32Array.BYTES_PER_ELEMENT*2);
+                const player = players[id];
 
-                _broadcastMessage(_makeAudioMessage(id, audioBuffer));
+                if (player) {
+                  const audioBuffer = m.slice(Uint32Array.BYTES_PER_ELEMENT*2);
+
+                  _broadcastMessage(_makeAudioMessage(id, audioBuffer));
+                } else {
+                  console.warn('ignoring player audio message for unknown player', {id});
+                }
                 break;
               }
               case MESSAGE_TYPES.OBJECT_MATRIX: {
                 const object = objects[id];
-                const matrixBuffer = m.slice(Uint32Array.BYTES_PER_ELEMENT*2);
-                object.matrix.setUint8Array(matrixBuffer);
 
-                _broadcastMessage(_makeObjectMatrixMessage(id, matrixBuffer));
+                if (object) {
+                  const object = objects[id];
+                  const matrixBuffer = m.slice(Uint32Array.BYTES_PER_ELEMENT*2);
+                  object.matrix.setUint8Array(matrixBuffer);
+
+                  console.log('broadcast object', id);
+
+                  _broadcastMessage(_makeObjectMatrixMessage(id, matrixBuffer));
+                } else {
+                  console.warn('ignoring object matrix message for unknown object', {id});
+                }
                 break;
               }
             }
