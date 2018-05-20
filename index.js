@@ -331,7 +331,6 @@ const connectionListeners = [];
 wss.on('connection', (ws, req) => {
   for (let i = 0; i < connectionListeners.length; i++) {
     if (connectionListeners[i](ws, req)) {
-      console.log('matched');
       return;
     }
   }
