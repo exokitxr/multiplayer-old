@@ -366,7 +366,7 @@ const _startServer = name => {
       if (object) {
         const {id, owner, state} = object;
         result.push(JSON.stringify({type: 'objectAdd', id, owner, state}));
-        result.push(_makeObjectMatrixMessage(id, object.matrix));
+        result.push(_makeObjectMatrixMessage(id, Buffer.from(object.matrix)));
       }
     }
     result.push(JSON.stringify({type: 'sync'}));
