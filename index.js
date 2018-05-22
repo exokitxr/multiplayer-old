@@ -70,9 +70,10 @@ class Player {
 }
 const numObjectMatrixElements = 3 + 4;
 class TrackedObject {
-  constructor(id, owner, expression) {
+  constructor(id, owner, state, expression) {
     this.id = id;
     this.owner = owner;
+    this.state = state;
     this.expression = expression ? expressionsJs.parse(expression) : null;
 
     const matrix = new ArrayBuffer(numObjectMatrixElements*Float32Array.BYTES_PER_ELEMENT);
@@ -85,6 +86,11 @@ class TrackedObject {
       };
     })();
     this.matrix = matrix;
+  }
+  setState(state) {
+    for (const k in state) {
+      this.state[k] = state[k];
+    }
   }
   setExpression(expression) {
     this.expression = expression ? expressionsJs.parse(expression) : null;
@@ -217,6 +223,7 @@ app.get('/servers/:name', (req, res, next) => {
             case 'playerLeave':
             case 'objectAdd':
             case 'objectRemove':
+            case 'objectSetState':
             case 'objectSetUpdateExpression':
             case 'sync': {
               _writeLog(JSON.stringify(j));
@@ -357,8 +364,8 @@ const _startServer = name => {
     for (const id in objects) {
       const object = objects[id];
       if (object) {
-        const {id} = object;
-        result.push(JSON.stringify({type: 'objectAdd', id}));
+        const {id, owner, state} = object;
+        result.push(JSON.stringify({type: 'objectAdd', id, owner, state}));
         result.push(_makeObjectMatrixMessage(id, object.matrix));
       }
     }
@@ -404,12 +411,12 @@ const _startServer = name => {
                 break;
               }
               case 'objectAdd': {
-                const {id, owner = -1, expression = null} = j;
+                const {id, owner = -1, state = {}, expression = null} = j;
 
                 if (!objects[id]) {
-                  objects[id] = new TrackedObject(id, owner, expression);
+                  objects[id] = new TrackedObject(id, owner, state, expression);
 
-                  _broadcastMessage(JSON.stringify({type: 'objectAdd', id, owner}));
+                  _broadcastMessage(JSON.stringify({type: 'objectAdd', id, owner, state}));
                 }
                 break;
               }
@@ -421,6 +428,19 @@ const _startServer = name => {
                   objects[id] = null;
 
                   _broadcastMessage(JSON.stringify({type: 'objectRemove', id}));
+                }
+                break;
+              }
+              case 'objectSetState': {
+                const {id, state} = j;
+
+                const object = objects[id];
+                if (object) {
+                  object.setState(state);
+
+                  _broadcastMessage(JSON.stringify({type: 'objectSetState', id}));
+                } else {
+                  console.warn('object set state for nonexistent object', {id, state});
                 }
                 break;
               }
