@@ -431,7 +431,7 @@ const _startServer = name => {
                 if (object) {
                   object.setExpression(expression);
                 } else {
-                  console.warn('object set update expression fr nonexistent object', {id, expression});
+                  console.warn('object set update expression for nonexistent object', {id, expression});
                 }
                 break;
               }
