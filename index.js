@@ -23,6 +23,7 @@ const MESSAGE_TYPES = (() => {
     PLAYER_MATRIX: id++,
     AUDIO: id++,
     OBJECT_MATRIX: id++,
+    GEOMETRY: id++,
   };
 })();
 const _makePlayerMatrixMessage = (id, matrixBuffer) => {
@@ -47,6 +48,13 @@ const _makeAudioMessage = (id, audioBuffer) => {
   uint32Array[0] = MESSAGE_TYPES.AUDIO;
   uint32Array[1] = id;
   buffer.set(audioBuffer, Uint32Array.BYTES_PER_ELEMENT*2);
+  return buffer;
+};
+const _makeGeometryMessage = geometryBuffer => {
+  const buffer = Buffer.allocUnsafe(geometryBuffer.byteLength + Uint32Array.BYTES_PER_ELEMENT);
+  const uint32Array = new Uint32Array(buffer.buffer, buffer.byteOffset, 1);
+  uint32Array[0] = MESSAGE_TYPES.GEOMETRY;
+  buffer.set(geometryBuffer, Uint32Array.BYTES_PER_ELEMENT);
   return buffer;
 };
 
@@ -475,10 +483,10 @@ const _startServer = name => {
               m = m2;
             }
             const type = new Uint32Array(m.buffer, m.byteOffset + 0, 1)[0];
-            const id = new Uint32Array(m.buffer, m.byteOffset + Uint32Array.BYTES_PER_ELEMENT, 1)[0];
 
             switch (type) {
               case MESSAGE_TYPES.PLAYER_MATRIX: {
+                const id = new Uint32Array(m.buffer, m.byteOffset + Uint32Array.BYTES_PER_ELEMENT, 1)[0];
                 const player = players[id];
 
                 if (player) {
@@ -492,6 +500,7 @@ const _startServer = name => {
                 break;
               }
               case MESSAGE_TYPES.AUDIO: {
+                const id = new Uint32Array(m.buffer, m.byteOffset + Uint32Array.BYTES_PER_ELEMENT, 1)[0];
                 const player = players[id];
 
                 if (player) {
@@ -504,6 +513,7 @@ const _startServer = name => {
                 break;
               }
               case MESSAGE_TYPES.OBJECT_MATRIX: {
+                const id = new Uint32Array(m.buffer, m.byteOffset + Uint32Array.BYTES_PER_ELEMENT, 1)[0];
                 const object = objects[id];
 
                 if (object) {
@@ -515,6 +525,12 @@ const _startServer = name => {
                 } else {
                   console.warn('ignoring object matrix message for unknown object', {id});
                 }
+                break;
+              }
+              case MESSAGE_TYPES.GEOMETRY: {
+                const geometryBuffer = m.slice(Uint32Array.BYTES_PER_ELEMENT);
+
+                _broadcastMessage(_makeGeometryMessage(geometryBuffer));
                 break;
               }
             }
