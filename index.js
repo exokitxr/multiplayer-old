@@ -417,6 +417,8 @@ const _startServer = name => {
                   objects[id] = new TrackedObject(id, owner, state, expression);
 
                   _broadcastMessage(JSON.stringify({type: 'objectAdd', id, owner, state}));
+                } else {
+                  console.warn('ignoring duplicate object add', {id});
                 }
                 break;
               }
@@ -428,6 +430,8 @@ const _startServer = name => {
                   objects[id] = null;
 
                   _broadcastMessage(JSON.stringify({type: 'objectRemove', id}));
+                } else {
+                  console.warn('ignoring unknown object remove', {id});
                 }
                 break;
               }
