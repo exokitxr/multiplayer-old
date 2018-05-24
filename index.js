@@ -138,7 +138,7 @@ app.get('/', (req, res, next) => {
 <head></head>
 <body>
   <h1>Mutiplayer servers (live)</h1>
-  ${servers.map(server => `<a href="${server.pathname}" class=server>${'⌨️\xa0' + server.pathname}</a><br>`).join('\n')}
+  ${servers.map(server => `<a href="${server.pathname}" class=server>${'⌨️\xa0' + server.pathname}</a>&nbsp;<span>${server.players.length}😏 ${server.objects.length}📦</span><br>`).join('\n')}
   <script>
     window.onload = () => {
       const playerId = Math.floor(Math.random() * 0xFFFFFFFF);
@@ -157,21 +157,8 @@ app.get('/servers', (req, res, next) => {
   res.json({
     servers: servers.map(server => ({
       name: server.name,
-      players: Object.keys(server.players).map(k => {
-        const player = server.players[k];
-        const {id} = player;
-        return {
-          id,
-        };
-      }),
-      objects: Object.keys(server.objects).map(k => {
-        const object = server.objects[k];
-        const {id, state} = object;
-        return {
-          id,
-          state,
-        };
-      }),
+      players: server.players,
+      objects: server.objects,
     })),
   });
 });
@@ -609,8 +596,27 @@ const _startServer = name => {
   servers.push({
     name,
     pathname,
-    players,
-    objects,
+    get players() {
+      return Object.keys(players).map(k => {
+        const player = players[k];
+        const {id} = player;
+        return {
+          id,
+        };
+      });
+    },
+    set players(players) {},
+    get objects() {
+      return Object.keys(objects).map(k => {
+        const object = objects[k];
+        const {id, state} = object;
+        return {
+          id,
+          state,
+        };
+      });
+    },
+    set objects(objects) {},
     kill: () => {
       connectionListeners.splice(connectionListeners.indexOf(_onconnection), 1);
       clearInterval(inverval);
