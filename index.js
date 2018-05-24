@@ -459,7 +459,7 @@ const _startServer = name => {
                 if (object) {
                   object.setState(state);
 
-                  _broadcastMessage(JSON.stringify({type: 'objectSetState', id}));
+                  _broadcastMessage(JSON.stringify({type: 'objectSetState', id, state}));
                 } else {
                   console.warn('object set state for nonexistent object', {id, state});
                 }
