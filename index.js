@@ -125,6 +125,11 @@ class TrackedObject {
 
 const app = express();
 const servers = [];
+app.all('*', (req, res, next) => {
+  _cors(req, res);
+
+  next();
+});
 app.get('/', (req, res, next) => {
   res.type('text/html');
   res.end(`\
@@ -607,6 +612,12 @@ const _stopServer = name => {
   }
 };
 _startServer('root');
+const _cors = (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.set('Access-Control-Allow-Credentials', 'true');
+};
 server.listen(PORT, () => {
   console.log(`ws://127.0.0.1:${PORT}/`);
 });
