@@ -599,22 +599,30 @@ const _startServer = name => {
     get players() {
       return Object.keys(players).map(k => {
         const player = players[k];
-        const {id} = player;
-        return {
-          id,
-        };
-      });
+        if (player) {
+          const {id} = player;
+          return {
+            id,
+          };
+        } else {
+          return null;
+        }
+      }).filter(player => player !== null);
     },
     set players(players) {},
     get objects() {
       return Object.keys(objects).map(k => {
         const object = objects[k];
-        const {id, state} = object;
-        return {
-          id,
-          state,
-        };
-      });
+        if (object) {
+          const {id, state} = object;
+          return {
+            id,
+            state,
+          };
+        } else {
+          return null;
+        }
+      }).filter(object => object !== null);
     },
     set objects(objects) {},
     kill: () => {
