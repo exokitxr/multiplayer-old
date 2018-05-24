@@ -157,6 +157,8 @@ app.get('/servers', (req, res, next) => {
   res.json({
     servers: servers.map(server => ({
       name: server.name,
+      players: server.players,
+      objects: server.objects,
     })),
   });
 });
@@ -594,6 +596,8 @@ const _startServer = name => {
   servers.push({
     name,
     pathname,
+    players,
+    objects,
     kill: () => {
       connectionListeners.splice(connectionListeners.indexOf(_onconnection), 1);
       clearInterval(inverval);
