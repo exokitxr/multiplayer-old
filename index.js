@@ -157,8 +157,21 @@ app.get('/servers', (req, res, next) => {
   res.json({
     servers: servers.map(server => ({
       name: server.name,
-      players: server.players,
-      objects: server.objects,
+      players: Object.keys(server.players).map(k => {
+        const player = server.players[k];
+        const {id} = player;
+        return {
+          id,
+        };
+      }),
+      objects: Object.keys(server.objects).map(k => {
+        const object = server.objects[k];
+        const {id, state} = object;
+        return {
+          id,
+          state,
+        };
+      }),
     })),
   });
 });
