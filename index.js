@@ -6,7 +6,6 @@ const bodyParserJson = bodyParser.json();
 const expressionsJs = require('expressions-js');
 const ws = require('ws');
 
-const HOSTNAME = 'multiplayer.webmr.io';
 const PORT = parseInt(process.env['PORT'], 10) || 9001;
 const FPS = 90;
 const TICK_RATE = Math.floor(1000 / FPS);
@@ -134,7 +133,7 @@ app.get('/', (req, res, next) => {
 <head></head>
 <body>
   <h1>Mutiplayer servers (live)</h1>
-  ${servers.map(server => `<a href="/servers/${server.name}" class=server>${'⌨️\xa0/servers/' + server.name}</a><br>`).join('\n')}
+  ${servers.map(server => `<a href="${server.pathname}" class=server>${'⌨️\xa0/+ server.pathname}</a><br>`).join('\n')}
   <script>
     window.onload = () => {
       const playerId = Math.floor(Math.random() * 0xFFFFFFFF);
@@ -151,7 +150,9 @@ app.get('/', (req, res, next) => {
 });
 app.get('/servers', (req, res, next) => {
   res.json({
-    servers,
+    servers.map(server => ({
+      name: server.name,
+    })),
   });
 });
 app.get('/servers/:name', (req, res, next) => {
@@ -587,7 +588,7 @@ const _startServer = name => {
 
   servers.push({
     name,
-    url: 'https://' + HOSTNAME + pathname,
+    pathname,
     kill: () => {
       connectionListeners.splice(connectionListeners.indexOf(_onconnection), 1);
       clearInterval(inverval);
