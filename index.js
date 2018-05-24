@@ -242,6 +242,7 @@ app.get('/servers/:name', (req, res, next) => {
             case 'objectRemove':
             case 'objectSetState':
             case 'objectSetUpdateExpression':
+            case 'setState':
             case 'sync': {
               _writeLog(JSON.stringify(j));
               break;
@@ -366,6 +367,7 @@ const _startServer = name => {
 
   const players = {};
   const objects = {};
+  const state = {};
   const connections = [];
 
   const _getWorldSnapshot = () => {
@@ -386,6 +388,7 @@ const _startServer = name => {
         result.push(_makeObjectMatrixMessage(id, Buffer.from(object.matrix)));
       }
     }
+    result.push(JSON.stringify({type: 'setState', state}));
     result.push(JSON.stringify({type: 'sync'}));
     return result;
   };
@@ -474,6 +477,16 @@ const _startServer = name => {
                 } else {
                   console.warn('object set update expression for nonexistent object', {id, expression});
                 }
+                break;
+              }
+              case 'setState': {
+                const {state: update} = j;
+
+                for (const k in update) {
+                  state[k] = update[k];
+                }
+
+                _broadcastMessage(JSON.stringify({type: 'setState', state: update}));
                 break;
               }
               default: {
