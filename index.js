@@ -6,7 +6,8 @@ const bodyParserJson = bodyParser.json();
 const expressionsJs = require('expressions-js');
 const ws = require('ws');
 
-const port = parseInt(process.env['PORT'], 10) || 9001;
+const HOSTNAME = 'multiplayer.webmr.io';
+const PORT = parseInt(process.env['PORT'], 10) || 9001;
 const FPS = 90;
 const TICK_RATE = Math.floor(1000 / FPS);
 
@@ -353,7 +354,7 @@ wss.on('connection', (ws, req) => {
   ws.close();
 });
 const _startServer = name => {
-  const serverUrl = '/servers/' + name;
+  const pathname = '/servers/' + name;
 
   const players = {};
   const objects = {};
@@ -388,7 +389,7 @@ const _startServer = name => {
 
     let localId = parseInt(parsedUrl.query.id, 10);
     const localPlayerIds = [];
-    if (parsedUrl.pathname === serverUrl && !isNaN(localId)) {
+    if (parsedUrl.pathname === pathname && !isNaN(localId)) {
       console.log('connection', parsedUrl.pathname, parsedUrl.query.id);
 
       const _broadcastMessage = (m, self = false) => {
@@ -586,6 +587,7 @@ const _startServer = name => {
 
   servers.push({
     name,
+    url: 'https://' + HOSTNAME + pathname,
     kill: () => {
       connectionListeners.splice(connectionListeners.indexOf(_onconnection), 1);
       clearInterval(inverval);
@@ -604,6 +606,6 @@ const _stopServer = name => {
   }
 };
 _startServer('root');
-server.listen(port, () => {
-  console.log(`ws://127.0.0.1:${port}/`);
+server.listen(PORT, () => {
+  console.log(`ws://127.0.0.1:${PORT}/`);
 });
