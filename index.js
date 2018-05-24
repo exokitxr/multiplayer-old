@@ -133,7 +133,7 @@ app.get('/', (req, res, next) => {
 <head></head>
 <body>
   <h1>Mutiplayer servers (live)</h1>
-  ${servers.map(server => `<a href="${server.pathname}" class=server>${'⌨️\xa0/+ server.pathname}</a><br>`).join('\n')}
+  ${servers.map(server => `<a href="${server.pathname}" class=server>${'⌨️\xa0' + server.pathname}</a><br>`).join('\n')}
   <script>
     window.onload = () => {
       const playerId = Math.floor(Math.random() * 0xFFFFFFFF);
@@ -150,7 +150,7 @@ app.get('/', (req, res, next) => {
 });
 app.get('/servers', (req, res, next) => {
   res.json({
-    servers.map(server => ({
+    servers: servers.map(server => ({
       name: server.name,
     })),
   });
