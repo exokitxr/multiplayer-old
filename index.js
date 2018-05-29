@@ -65,6 +65,7 @@ const numPlayerMatrixElements =
 class Player {
   constructor(id) {
     this.id = id;
+    this.state = {};
 
     const matrix = new ArrayBuffer(numPlayerMatrixElements*Float32Array.BYTES_PER_ELEMENT);
     matrix.setUint8Array = (() => {
@@ -74,6 +75,11 @@ class Player {
       };
     })();
     this.matrix = matrix;
+  }
+  setState(state) {
+    for (const k in state) {
+      this.state[k] = state[k];
+    }
   }
 }
 const numObjectMatrixElements = 3 + 4;
@@ -238,6 +244,7 @@ app.get('/servers/:name', (req, res, next) => {
           switch (type) {
             case 'playerEnter':
             case 'playerLeave':
+            case 'playerSetState':
             case 'objectAdd':
             case 'objectRemove':
             case 'objectSetState':
@@ -375,8 +382,8 @@ const _startServer = name => {
     for (const id in players) {
       const player = players[id];
       if (player) {
-        const {id} = player;
-        result.push(JSON.stringify({type: 'playerEnter', id}));
+        const {id, state} = player;
+        result.push(JSON.stringify({type: 'playerEnter', id, state}));
         result.push(_makePlayerMatrixMessage(id, player.matrix));
       }
     }
@@ -422,12 +429,25 @@ const _startServer = name => {
 
             switch (type) {
               case 'playerEnter': {
-                const {id} = j;
-                players[id] = new Player(id);
+                const {id, state} = j;
+                players[id] = new Player(id, state);
 
                 localPlayerIds.push(id);
 
-                _broadcastMessage(JSON.stringify({type: 'playerEnter', id}));
+                _broadcastMessage(JSON.stringify({type: 'playerEnter', id, state}));
+                break;
+              }
+              case 'playerSetState': {
+                const {id, state} = j;
+
+                const player = players[id];
+                if (player) {
+                  player.setState(state);
+
+                  _broadcastMessage(JSON.stringify({type: 'playerSetState', id, state}));
+                } else {
+                  console.warn('object set state for nonexistent player', {id, state});
+                }
                 break;
               }
               case 'objectAdd': {
