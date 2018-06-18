@@ -63,9 +63,9 @@ const numPlayerMatrixElements =
   (1 + (3+4)) * 2 + // gamepads
   (1 + (5*4*(3+3))) * 2; // hands
 class Player {
-  constructor(id) {
+  constructor(id, state = {}) {
     this.id = id;
-    this.state = {};
+    this.state = state;
 
     const matrix = new ArrayBuffer(numPlayerMatrixElements*Float32Array.BYTES_PER_ELEMENT);
     matrix.setUint8Array = (() => {
