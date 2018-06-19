@@ -42,12 +42,13 @@ const _makeObjectMatrixMessage = (id, matrixBuffer) => {
   buffer.set(matrixBuffer, Uint32Array.BYTES_PER_ELEMENT*2);
   return buffer;
 };
-const _makeAudioMessage = (id, audioBuffer) => {
-  const buffer = Buffer.allocUnsafe(audioBuffer.byteLength + Uint32Array.BYTES_PER_ELEMENT*2);
-  const uint32Array = new Uint32Array(buffer.buffer, buffer.byteOffset, 2);
+const _makeAudioMessage = (id, sampleRate, audioBuffer) => {
+  const buffer = Buffer.allocUnsafe(Uint32Array.BYTES_PER_ELEMENT*3 + audioBuffer.byteLength);
+  const uint32Array = new Uint32Array(buffer.buffer, buffer.byteOffset, 3);
   uint32Array[0] = MESSAGE_TYPES.AUDIO;
   uint32Array[1] = id;
-  buffer.set(audioBuffer, Uint32Array.BYTES_PER_ELEMENT*2);
+  uint32Array[2] = sampleRate;
+  buffer.set(audioBuffer, Uint32Array.BYTES_PER_ELEMENT*3);
   return buffer;
 };
 const _makeGeometryMessage = geometryBuffer => {
@@ -542,13 +543,15 @@ const _startServer = name => {
                 break;
               }
               case MESSAGE_TYPES.AUDIO: {
-                const id = new Uint32Array(m.buffer, m.byteOffset + Uint32Array.BYTES_PER_ELEMENT, 1)[0];
+                const uint32Array = new Uint32Array(m.buffer, m.byteOffset, m.byteLength / Uint32Array.BYTES_PER_ELEMENT);
+                const id = uint32Array[1];
                 const player = players[id];
 
                 if (player) {
-                  const audioBuffer = m.slice(Uint32Array.BYTES_PER_ELEMENT*2);
+                  const sampleRate = uint32Array[2];
+                  const audioBuffer = m.slice(Uint32Array.BYTES_PER_ELEMENT*3);
 
-                  _broadcastMessage(_makeAudioMessage(id, audioBuffer));
+                  _broadcastMessage(_makeAudioMessage(id, sampleRate, audioBuffer));
                 } else {
                   console.warn('ignoring player audio message for unknown player', {id});
                 }
