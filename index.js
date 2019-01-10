@@ -6,8 +6,6 @@ const bodyParserJson = bodyParser.json();
 const ws = require('ws');
 
 const PORT = parseInt(process.env['PORT'], 10) || 9001;
-const FPS = 90;
-const TICK_RATE = Math.floor(1000 / FPS);
 
 const _jsonParse = s => {
   try {
@@ -579,20 +577,6 @@ const _startServer = name => {
     }
   };
   connectionListeners.push(_onconnection);
-
-  const interval = setInterval(() => {
-    for (const id in objects) {
-      const object = objects[id];
-
-      if (object && object.update()) {
-        for (let i = 0; i < connections.length; i++) {
-          const b = _makeObjectMatrixMessage(id, Buffer.from(object.matrix));
-
-          connections[i].broadcastMessage(_makeObjectMatrixMessage(id, Buffer.from(object.matrix)), true);
-        }
-      }
-    }
-  }, TICK_RATE);
 
   servers.push({
     name,
