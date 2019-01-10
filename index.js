@@ -18,7 +18,7 @@ const MESSAGE_TYPES = (() => {
   let id = 0;
   return {
     PLAYER_MATRIX: id++,
-    AUDIO: id++,
+    // AUDIO: id++,
     OBJECT_MATRIX: id++,
     GEOMETRY: id++,
   };
@@ -39,7 +39,7 @@ const _makeObjectMatrixMessage = (id, matrixBuffer) => {
   buffer.set(matrixBuffer, Uint32Array.BYTES_PER_ELEMENT*2);
   return buffer;
 };
-const _makeAudioMessage = (id, sampleRate, audioBuffer) => {
+/* const _makeAudioMessage = (id, sampleRate, audioBuffer) => {
   const buffer = Buffer.allocUnsafe(Uint32Array.BYTES_PER_ELEMENT*3 + audioBuffer.byteLength);
   const uint32Array = new Uint32Array(buffer.buffer, buffer.byteOffset, 3);
   uint32Array[0] = MESSAGE_TYPES.AUDIO;
@@ -47,7 +47,7 @@ const _makeAudioMessage = (id, sampleRate, audioBuffer) => {
   uint32Array[2] = sampleRate;
   buffer.set(audioBuffer, Uint32Array.BYTES_PER_ELEMENT*3);
   return buffer;
-};
+}; */
 const _makeGeometryMessage = geometryBuffer => {
   const buffer = Buffer.allocUnsafe(geometryBuffer.byteLength + Uint32Array.BYTES_PER_ELEMENT);
   const uint32Array = new Uint32Array(buffer.buffer, buffer.byteOffset, 1);
@@ -187,8 +187,9 @@ app.get('/servers/:name', (req, res, next) => {
       let id = 0;
       return {
         PLAYER_MATRIX: id++,
-        AUDIO: id++,
+        // AUDIO: id++,
         OBJECT_MATRIX: id++,
+        GEOMETRY: id++,
       };
     })();
 
@@ -256,7 +257,7 @@ app.get('/servers/:name', (req, res, next) => {
               }
               break;
             }
-            case MESSAGE_TYPES.AUDIO: {
+            /* case MESSAGE_TYPES.AUDIO: {
               const lastAudioMessage = lastMessages.audio[id];
               const now = Date.now();
               if (lastAudioMessage === undefined || (now - lastAudioMessage) >= 2000) {
@@ -268,7 +269,7 @@ app.get('/servers/:name', (req, res, next) => {
                 lastMessages.audio[id] = now;
               }
               break;
-            }
+            } */
             case MESSAGE_TYPES.OBJECT_MATRIX: {
               const lastMatrixMessage = lastMessages.objectMatrix[id];
               const now = Date.now();
@@ -505,7 +506,7 @@ const _startServer = name => {
                 }
                 break;
               }
-              case MESSAGE_TYPES.AUDIO: {
+              /* case MESSAGE_TYPES.AUDIO: {
                 const uint32Array = new Uint32Array(m.buffer, m.byteOffset, m.byteLength / Uint32Array.BYTES_PER_ELEMENT);
                 const id = uint32Array[1];
                 const player = players[id];
@@ -519,7 +520,7 @@ const _startServer = name => {
                   console.warn('ignoring player audio message for unknown player', {id});
                 }
                 break;
-              }
+              } */
               case MESSAGE_TYPES.OBJECT_MATRIX: {
                 const id = new Uint32Array(m.buffer, m.byteOffset + Uint32Array.BYTES_PER_ELEMENT, 1)[0];
                 const object = objects[id];
