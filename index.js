@@ -90,6 +90,7 @@ class TrackedObject {
     const matrix = new ArrayBuffer(numObjectMatrixElements*Float32Array.BYTES_PER_ELEMENT);
     matrix.position = new Float32Array(matrix, 0, 3);
     matrix.quaternion = new Float32Array(matrix, 3*Float32Array.BYTES_PER_ELEMENT, 4);
+    matrix.quaternion[3] = 1;
     matrix.setUint8Array = (() => {
       const uint8Array = new Uint8Array(matrix);
       return newUint8Array => {
