@@ -3,7 +3,6 @@ const url = require('url');
 const express = require('express');
 const bodyParser = require('body-parser');
 const bodyParserJson = bodyParser.json();
-const expressionsJs = require('expressions-js');
 const ws = require('ws');
 
 const PORT = parseInt(process.env['PORT'], 10) || 9001;
@@ -85,11 +84,10 @@ class Player {
 }
 const numObjectMatrixElements = 3 + 4;
 class TrackedObject {
-  constructor(id, owner, state, expression) {
+  constructor(id, owner, state) {
     this.id = id;
     this.owner = owner;
     this.state = state;
-    this.expression = expression ? expressionsJs.parse(expression) : null;
 
     const matrix = new ArrayBuffer(numObjectMatrixElements*Float32Array.BYTES_PER_ELEMENT);
     matrix.position = new Float32Array(matrix, 0, 3);
@@ -105,27 +103,6 @@ class TrackedObject {
   setState(state) {
     for (const k in state) {
       this.state[k] = state[k];
-    }
-  }
-  setExpression(expression) {
-    this.expression = expression ? expressionsJs.parse(expression) : null;
-  }
-  update() {
-    if (this.expression) {
-      const result = this.expression.call({
-        matrix: [
-          this.matrix[0],
-          this.matrix[1],
-          this.matrix[2],
-        ],
-      });
-      this.matrix.position[0] = result[0];
-      this.matrix.position[1] = result[1];
-      this.matrix.position[2] = result[2];
-
-      return true;
-    } else {
-      return false;
     }
   }
 }
@@ -249,7 +226,6 @@ app.get('/servers/:name', (req, res, next) => {
             case 'objectAdd':
             case 'objectRemove':
             case 'objectSetState':
-            case 'objectSetUpdateExpression':
             case 'setState':
             case 'sync': {
               _writeLog(JSON.stringify(j));
@@ -452,10 +428,10 @@ const _startServer = name => {
                 break;
               }
               case 'objectAdd': {
-                const {id, owner = -1, state = {}, expression = null} = j;
+                const {id, owner = -1, state = {}} = j;
 
                 if (!objects[id]) {
-                  objects[id] = new TrackedObject(id, owner, state, expression);
+                  objects[id] = new TrackedObject(id, owner, state);
 
                   _broadcastMessage(JSON.stringify({type: 'objectAdd', id, owner, state}));
                 } else {
@@ -486,17 +462,6 @@ const _startServer = name => {
                   _broadcastMessage(JSON.stringify({type: 'objectSetState', id, state}));
                 } else {
                   console.warn('object set state for nonexistent object', {id, state});
-                }
-                break;
-              }
-              case 'objectSetUpdateExpression': {
-                const {id, expression} = j;
-
-                const object = objects[id];
-                if (object) {
-                  object.setExpression(expression);
-                } else {
-                  console.warn('object set update expression for nonexistent object', {id, expression});
                 }
                 break;
               }
