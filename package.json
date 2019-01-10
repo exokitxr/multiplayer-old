@@ -18,7 +18,7 @@
   },
   "homepage": "https://github.com/modulesio/webmr-server#readme",
   "dependencies": {
-    "express": "^4.16.3",
-    "ws": "^5.1.1"
+    "express": "^4.16.4",
+    "ws": "^6.1.2"
   }
 }
