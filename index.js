@@ -80,7 +80,7 @@ class Player {
     }
   }
 }
-const numObjectMatrixElements = 3 + 4;
+const numObjectMatrixElements = 3 + 4 + 3;
 class TrackedObject {
   constructor(id, owner, state) {
     this.id = id;
@@ -91,6 +91,8 @@ class TrackedObject {
     matrix.position = new Float32Array(matrix, 0, 3);
     matrix.quaternion = new Float32Array(matrix, 3*Float32Array.BYTES_PER_ELEMENT, 4);
     matrix.quaternion[3] = 1;
+    matrix.scale = new Float32Array(matrix, (3+4)*Float32Array.BYTES_PER_ELEMENT, 3);
+    matrix.scale.fill(1);
     matrix.setUint8Array = (() => {
       const uint8Array = new Uint8Array(matrix);
       return newUint8Array => {
