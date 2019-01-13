@@ -282,6 +282,7 @@ app.get('/servers/:name', (req, res, next) => {
                   id,
                   position: Array.from(new Float32Array(arrayBuffer, 0 + 2*Uint32Array.BYTES_PER_ELEMENT, 3)),
                   quaternion: Array.from(new Float32Array(arrayBuffer, 0 + 2*Uint32Array.BYTES_PER_ELEMENT + 3*Float32Array.BYTES_PER_ELEMENT, 4)),
+                  scale: Array.from(new Float32Array(arrayBuffer, 0 + 2*Uint32Array.BYTES_PER_ELEMENT + (3+4)*Float32Array.BYTES_PER_ELEMENT, 3)),
                 }));
 
                 lastMessages.objectMatrix[id] = now;
